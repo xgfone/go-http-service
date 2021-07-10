@@ -1,0 +1,62 @@
+// Copyright 2021 xgfone
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package httpsvc
+
+import "fmt"
+
+// Predefine some errors.
+var (
+	ErrInvalidAction        = NewError("InvalidAction", "invalid action")
+	ErrInvalidVersion       = NewError("InvalidVersion", "invalid version")
+	ErrInvalidParameter     = NewError("InvalidParams", "invalid parameter")
+	ErrUnsupportedProtocol  = NewError("UnsupportedProtocol", "protocol is unsupported")
+	ErrUnsupportedOperation = NewError("UnsupportedOperation", "operation is unsupported")
+
+	ErrAuthFailureTokenFailure     = NewError("AuthFailure.TokenFailure", "token verification failed")
+	ErrAuthFailureSignatureFailure = NewError("AuthFailure.SignatureFailure", "signature verification failed")
+	ErrAuthFailureSignatureExpire  = NewError("AuthFailure.SignatureExpire", "signature is expired")
+	ErrUnauthorizedOperation       = NewError("UnauthorizedOperation", "operation is unauthorized")
+
+	ErrFailedOperation = NewError("FailedOperation", "operation failed")
+	ErrServerError     = NewError("ServerError", "server error")
+
+	ErrQuotaLimitExceeded   = NewError("QuotaLimitExceeded", "exceed the quota limit")
+	ErrRequestLimitExceeded = NewError("RequestLimitExceeded", "exceed the request limit")
+
+	ErrResourceInUse        = NewError("ResourceInUse", "resource is in use")
+	ErrResourceNotFound     = NewError("ResourceNotFound", "resource is not found")
+	ErrResourceUnavailable  = NewError("ResourceUnavailable", "resource is unavailable")
+	ErrResourceInsufficient = NewError("ResourceInsufficient", "resource is insufficient")
+)
+
+// Error represents an error.
+type Error struct {
+	Code    string `json:",omitempty" xml:",omitempty"`
+	Message string `json:",omitempty" xml:",omitempty"`
+}
+
+// NewError returns a new Error.
+func NewError(code, msg string) Error { return Error{Code: code, Message: msg} }
+
+// Error implements the interface error.
+func (e Error) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
+
+// WithMessage returns a new Error with the old Code and the new msg.
+func (e Error) WithMessage(msgfmt string, msgargs ...interface{}) Error {
+	if len(msgargs) == 0 {
+		return Error{e.Code, msgfmt}
+	}
+	return Error{e.Code, fmt.Sprintf(msgfmt, msgargs...)}
+}
