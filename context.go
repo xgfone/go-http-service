@@ -231,13 +231,13 @@ func (c *Context) SetRespHeader(key, value string) { c.res.Header().Set(key, val
 // If the method is "POST", use c.BindBody.
 func (c *Context) Bind(v interface{}) (err error) {
 	switch c.req.Method {
-	case http.MethodGet:
+	case "GET":
 		if c.BindQuery != nil {
 			err = c.BindQuery(v, c.Query())
 		} else {
 			err = BindURLValues(v, c.Query(), "query")
 		}
-	case http.MethodPost:
+	case "POST":
 		if c.BindBody != nil {
 			err = c.BindBody.Bind(v, c.req)
 		} else {
