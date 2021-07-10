@@ -34,7 +34,7 @@ func BenchmarkServiceText(b *testing.B) {
 	}
 
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1", nil)
 	req.Header.Set("X-Action", "service")
 	if err != nil {
 		panic(err)
@@ -52,7 +52,7 @@ func BenchmarkServiceJSON(b *testing.B) {
 	svc.Register("service", func(c *Context) error { return c.Success(nil) })
 
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest(http.MethodGet, "http://127.0.0.1", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1", nil)
 	req.Header.Set("X-Action", "service")
 	if err != nil {
 		panic(err)
