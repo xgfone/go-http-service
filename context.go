@@ -64,15 +64,12 @@ type Context struct {
 	// Data is used to save the context data during handling the request.
 	Data interface{}
 
-	// BindBody is used to bind the request body to data.
+	// Binder is used by the method Bind to bind the request to data.
 	//
-	// Default: JSONBinder()
-	BindBody Binder
-
-	// BindQuery is used to bind the request query to data.
-	//
-	// Default: use BindURLValues(data, query, "query")
-	BindQuery func(data interface{}, query url.Values) error
+	// Default:
+	//   For GET,  bind the request query to the data by the struct tag "query".
+	//   For POST, bind the request body  to the data by the json decoder.
+	Binder func(c *Context, data interface{}) error
 
 	// SetDefault is used to set the data to the default if it is ZERO.
 	//
@@ -224,27 +221,22 @@ func (c *Context) GetReqHeader(key string) string { return c.req.Header.Get(key)
 // SetRespHeader is equal to c.ResponseWriter().Header().Set(key, value).
 func (c *Context) SetRespHeader(key, value string) { c.res.Header().Set(key, value) }
 
-// Bind is used to bind the request to v, then set the default
-// and validate the data.
-//
-// If the method is "GET", use c.BindQuery.
-// If the method is "POST", use c.BindBody.
+// Bind is used to bind the request to v, set the default and validate the data.
 func (c *Context) Bind(v interface{}) (err error) {
-	switch c.req.Method {
-	case "GET":
-		if c.BindQuery != nil {
-			err = c.BindQuery(v, c.Query())
-		} else {
+	if c.Binder != nil {
+		err = c.Binder(c, v)
+	} else {
+		switch c.req.Method {
+		case "GET":
 			err = BindURLValues(v, c.Query(), "query")
+		case "POST":
+			if c.req.ContentLength > 0 {
+				err = json.NewDecoder(c.req.Body).Decode(v)
+			}
+		default:
+			return ErrUnsupportedProtocol.WithMessage("unsupported method '%s'",
+				c.req.Method)
 		}
-	case "POST":
-		if c.BindBody != nil {
-			err = c.BindBody.Bind(v, c.req)
-		} else {
-			err = jsonBinder.Bind(v, c.req)
-		}
-	default:
-		return ErrUnsupportedProtocol.WithMessage("unsupported method '%s'", c.req.Method)
 	}
 
 	if err == nil {
