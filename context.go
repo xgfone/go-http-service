@@ -130,6 +130,20 @@ func (c *Context) SetReqResp(req *http.Request, resp http.ResponseWriter) {
 	c.req, c.res.ResponseWriter = req, resp
 }
 
+var _ http.ResponseWriter = &Context{}
+
+// Header implements the interface http.ResponseWriter.
+func (c *Context) Header() http.Header { return c.res.Header() }
+
+// WriteHeader implements the interface http.ResponseWriter.
+func (c *Context) WriteHeader(code int) { c.res.WriteHeader(code) }
+
+// Write implements the interface http.ResponseWriter.
+func (c *Context) Write(p []byte) (int, error) { return c.res.Write(p) }
+
+// WriteString implements the interface io.StringWriter.
+func (c *Context) WriteString(s string) (int, error) { return c.res.WriteString(s) }
+
 // Blob sends the binary data to the client with status code and content type.
 func (c *Context) Blob(code int, contentType string, data []byte) (err error) {
 	setContentType(c.res.Header(), contentType)
