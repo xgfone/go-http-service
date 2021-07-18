@@ -16,6 +16,7 @@
 package httpsvc
 
 import (
+	"bytes"
 	"net/http"
 	"sync"
 )
@@ -51,6 +52,7 @@ type Service struct {
 	mws     []Middleware
 	handler Handler
 	ctxpool sync.Pool
+	bufpool sync.Pool
 
 	lock     sync.RWMutex
 	handlers map[string]Handler
@@ -60,11 +62,18 @@ type Service struct {
 func NewService() *Service {
 	s := &Service{handlers: make(map[string]Handler)}
 	s.handler = s.handleRequest
+	s.bufpool.New = func() interface{} {
+		return bytes.NewBuffer(make([]byte, 0, 2048))
+	}
 	s.ctxpool.New = func() interface{} {
+		var ctx *Context
 		if s.NewContext != nil {
-			return s.NewContext()
+			ctx = s.NewContext()
+		} else {
+			ctx = NewContext()
 		}
-		return NewContext()
+		ctx.svc = s
+		return ctx
 	}
 
 	return s

@@ -15,6 +15,7 @@
 package httpsvc
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -89,6 +90,7 @@ type Context struct {
 	// Default: use c.JSON(r)
 	Render func(c *Context, r Response) error
 
+	svc *Service
 	req *http.Request
 	res *responseWriter
 
@@ -101,6 +103,17 @@ func NewContext() *Context { return &Context{res: newResponseWriter(nil)} }
 func (c *Context) reset() {
 	c.req, c.query = nil, nil
 	c.res.Reset(nil)
+}
+
+// AcquireBuffer acquires a buffer from the pool.
+func (c *Context) AcquireBuffer() *bytes.Buffer {
+	return c.svc.bufpool.Get().(*bytes.Buffer)
+}
+
+// ReleaseBuffer releases the buffer to the pool.
+func (c *Context) ReleaseBuffer(buf *bytes.Buffer) {
+	buf.Reset()
+	c.svc.bufpool.Put(buf)
 }
 
 // StatusCode returns the status code of the response.
@@ -169,16 +182,28 @@ func (c *Context) Text(code int, contentType string, data string) (err error) {
 func (c *Context) Stream(code int, contentType string, r io.Reader) (err error) {
 	setContentType(c.res.Header(), contentType)
 	c.res.WriteHeader(code)
-	_, err = io.CopyBuffer(c.res, r, make([]byte, 2048))
+
+	switch v := r.(type) {
+	case interface{ Bytes() []byte }:
+		_, err = c.res.Write(v.Bytes())
+	case io.WriterTo:
+		_, err = v.WriteTo(c.res)
+	default:
+		_, err = io.CopyBuffer(c.res, r, make([]byte, 2048))
+	}
+
 	return
 }
 
 // JSON encodes the data with the json encoder, then responds to the client
 // with the status code 200.
-func (c *Context) JSON(data interface{}) error {
-	setContentType(c.res.Header(), MIMEApplicationJSONCharsetUTF8)
-	c.res.WriteHeader(200)
-	return json.NewEncoder(c.res).Encode(data)
+func (c *Context) JSON(data interface{}) (err error) {
+	buf := c.AcquireBuffer()
+	if err = json.NewEncoder(buf).Encode(data); err == nil {
+		err = c.Stream(200, MIMEApplicationJSONCharsetUTF8, buf)
+	}
+	c.ReleaseBuffer(buf)
+	return
 }
 
 // Respond sends the response as Response.
@@ -233,7 +258,13 @@ func (c *Context) GetQuery(key string) string { return c.Query().Get(key) }
 func (c *Context) GetReqHeader(key string) string { return c.req.Header.Get(key) }
 
 // SetRespHeader is equal to c.ResponseWriter().Header().Set(key, value).
-func (c *Context) SetRespHeader(key, value string) { c.res.Header().Set(key, value) }
+func (c *Context) SetRespHeader(key, value string) {
+	if key == "Content-Type" {
+		setContentType(c.res.Header(), value)
+	} else {
+		c.res.Header().Set(key, value)
+	}
+}
 
 // Bind is used to bind the request to v, set the default and validate the data.
 func (c *Context) Bind(v interface{}) (err error) {
