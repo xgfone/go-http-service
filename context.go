@@ -61,7 +61,8 @@ type Context struct {
 	// RequestID is the unique id indicating the request.
 	RequestID string
 
-	// Data is used to save the context data during handling the request.
+	// Data is used to store the context data during handling the request,
+	// and it is the responsibility of the user to manage its lifecycle.
 	Data interface{}
 
 	// Binder is used by the method Bind to bind the request to data.
@@ -98,7 +99,6 @@ type Context struct {
 func NewContext() *Context { return &Context{res: newResponseWriter(nil)} }
 
 func (c *Context) reset() {
-	c.Data = nil
 	c.req, c.query = nil, nil
 	c.res.Reset(nil)
 }
