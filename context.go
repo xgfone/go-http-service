@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func setContentType(header http.Header, ct string) {
@@ -303,3 +304,34 @@ func (c *Context) Bind(v interface{}) (err error) {
 
 	return
 }
+
+// IsWebSocket reports whether HTTP connection is WebSocket or not.
+func (c *Context) IsWebSocket() bool {
+	if c.req.Method == http.MethodGet &&
+		c.req.Header.Get("Connection") == "Upgrade" &&
+		c.req.Header.Get("Upgrade") == "websocket" {
+		return true
+	}
+	return false
+}
+
+// ContentLength return the length of the request body.
+func (c *Context) ContentLength() int64 { return c.req.ContentLength }
+
+// ContentType returns the Content-Type of the request without the charset.
+func (c *Context) ContentType() (ct string) {
+	ct = c.req.Header.Get("Content-Type")
+	if index := strings.IndexByte(ct, ';'); index > 0 {
+		ct = strings.TrimSpace(ct[:index])
+	}
+	return
+}
+
+// SetConnectionClose tell the server to close the connection.
+func (c *Context) SetConnectionClose() {
+	c.res.Header().Set("Connection", "close")
+}
+
+// SetContentType sets the Content-Type header of the response body to ct,
+// but does nothing if ct is "".
+func (c *Context) SetContentType(ct string) { setContentType(c.res.Header(), ct) }
