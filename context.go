@@ -307,7 +307,7 @@ func (c *Context) Bind(v interface{}) (err error) {
 
 // IsWebSocket reports whether HTTP connection is WebSocket or not.
 func (c *Context) IsWebSocket() bool {
-	if c.req.Method == http.MethodGet &&
+	if c.req.Method == "GET" &&
 		c.req.Header.Get("Connection") == "Upgrade" &&
 		c.req.Header.Get("Upgrade") == "websocket" {
 		return true
