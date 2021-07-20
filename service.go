@@ -56,11 +56,16 @@ type Service struct {
 
 	lock     sync.RWMutex
 	handlers map[string]Handler
+	mappings map[string]string
 }
 
 // NewService returns a new Service.
 func NewService() *Service {
-	s := &Service{handlers: make(map[string]Handler)}
+	s := &Service{
+		handlers: make(map[string]Handler),
+		mappings: make(map[string]string),
+	}
+
 	s.handler = s.handleRequest
 	s.bufpool.New = func() interface{} {
 		return bytes.NewBuffer(make([]byte, 0, 2048))
@@ -90,6 +95,12 @@ func (s *Service) Use(mws ...Middleware) {
 
 // Register registers a service with the name and the handler.
 func (s *Service) Register(name string, handler Handler, mws ...Middleware) {
+	if name == "" {
+		panic("Service.Register: the service name must not be empty")
+	} else if handler == nil {
+		panic("Service.Register: the service handler must not be empty")
+	}
+
 	for _len := len(mws) - 1; _len >= 0; _len-- {
 		handler = mws[_len](handler)
 	}
@@ -101,6 +112,10 @@ func (s *Service) Register(name string, handler Handler, mws ...Middleware) {
 
 // Unregister unregisters the service by the name.
 func (s *Service) Unregister(name string) {
+	if name == "" {
+		panic("Service.Unregister: the service name must not be empty")
+	}
+
 	s.lock.Lock()
 	delete(s.handlers, name)
 	s.lock.Unlock()
@@ -117,9 +132,38 @@ func (s *Service) Services() (names []string) {
 	return
 }
 
+// Mapping maps the name of the service from fromName to toName, that's,
+// fromName is the alias of the name of the service named toName,
+// and when calling the service named fromName, it will be forwarded
+// to the service named toName to handle.
+func (s *Service) Mapping(fromName, toName string) {
+	if fromName == "" || toName == "" {
+		panic("Service.Mapping: the service name must not be empty")
+	}
+
+	s.lock.Lock()
+	s.mappings[fromName] = toName
+	s.lock.Unlock()
+}
+
+// Mappings returns the mapping of the names of all the services.
+func (s *Service) Mappings() map[string]string {
+	s.lock.RLock()
+	mappings := make(map[string]string, len(s.mappings))
+	for k, v := range s.mappings {
+		mappings[k] = v
+	}
+	s.lock.RUnlock()
+	return mappings
+}
+
 func (s *Service) getHandler(name string) (handler Handler, ok bool) {
 	s.lock.RLock()
-	handler, ok = s.handlers[name]
+	if handler, ok = s.handlers[name]; !ok {
+		if name, ok = s.mappings[name]; ok {
+			handler, ok = s.handlers[name]
+		}
+	}
 	s.lock.RUnlock()
 	return
 }

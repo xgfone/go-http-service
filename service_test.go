@@ -23,6 +23,7 @@ import (
 
 func TestService(t *testing.T) {
 	svc := NewService()
+	svc.Mapping("old_svc", "svc")
 	svc.Register("svc", func(c *Context) (err error) {
 		var req struct {
 			Name string `query:"Name" json:"Name"`
@@ -35,7 +36,7 @@ func TestService(t *testing.T) {
 	})
 
 	rec := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "http://127.0.0.1?Action=svc&Name=test", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1?Action=old_svc&Name=test", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

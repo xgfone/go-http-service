@@ -36,6 +36,10 @@ func main() {
 	// Add the global logging middleware.
 	svc.Use(Logger("global"))
 
+	// Rename the old service name "old_service1" to "service1".
+	// So it is equal to call "service1" when calling "old_service1".
+	svc.Mapping("old_service1", "service1")
+
 	// Register the service "service1".
 	svc.Register("service1", func(c *httpsvc.Context) error {
 		return c.Success("service1")
@@ -70,6 +74,9 @@ func main() {
 	//
 	// ### Run Client
 	// $ curl -XGET 'http://127.0.0.1:8080/?Action=service1'
+	// {"Data":"service1"}
+	//
+	// $ curl -XGET 'http://127.0.0.1:8080/?Action=old_service1'
 	// {"Data":"service1"}
 	//
 	// $ curl -XGET 'http://127.0.0.1:8080/?Action=service2&Name=Aaron'
