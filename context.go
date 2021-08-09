@@ -48,11 +48,12 @@ func setContentType(header http.Header, ct string) {
 
 // Response represents a response result.
 type Response struct {
-	RequestId string      `json:",omitempty" xml:",omitempty"`
+	RequestID string      `json:"RequestId,omitempty" xml:"RequestId,omitempty"`
 	Error     Error       `json:",omitempty" xml:",omitempty"`
 	Data      interface{} `json:",omitempty" xml:",omitempty"`
 }
 
+// Context is the context of the request.
 type Context struct {
 	// Action is the name of the service.
 	Action string
@@ -223,19 +224,13 @@ func (c *Context) Respond(data interface{}, err error) error {
 	}
 
 	if c.Render != nil {
-		return c.Render(c, Response{RequestId: c.RequestID, Error: _err, Data: data})
-	}
-
-	type Resp struct {
-		RequestId string      `json:",omitempty" xml:",omitempty"`
-		Error     error       `json:",omitempty" xml:",omitempty"`
-		Data      interface{} `json:",omitempty" xml:",omitempty"`
+		return c.Render(c, Response{RequestID: c.RequestID, Error: _err, Data: data})
 	}
 
 	if _err.Code == "" {
-		return c.JSON(Resp{RequestId: c.RequestID, Data: data})
+		return c.JSON(Response{RequestID: c.RequestID, Data: data})
 	}
-	return c.JSON(Resp{RequestId: c.RequestID, Error: _err, Data: data})
+	return c.JSON(Response{RequestID: c.RequestID, Error: _err, Data: data})
 }
 
 // Success is equal to c.Respond("", data, nil).
