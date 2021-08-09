@@ -84,6 +84,19 @@ func NewService() *Service {
 	return s
 }
 
+// AcquireContext acquires a Context from the pool.
+func (s *Service) AcquireContext(r *http.Request, w http.ResponseWriter) *Context {
+	c := s.ctxpool.Get().(*Context)
+	c.SetReqResp(r, w)
+	return c
+}
+
+// ReleaseContext releases a Context into the pool.
+func (s *Service) ReleaseContext(c *Context) {
+	c.reset()
+	s.ctxpool.Put(c)
+}
+
 // Use registers the global middlewares that apply to all the services.
 func (s *Service) Use(mws ...Middleware) {
 	s.mws = append(s.mws, mws...)
@@ -170,9 +183,14 @@ func (s *Service) getHandler(name string) (handler Handler, ok bool) {
 
 // ServeHTTP implements the interface http.Handler.
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c := s.ctxpool.Get().(*Context)
-	c.SetReqResp(r, w)
+	c := s.AcquireContext(r, w)
+	s.HandleRequest(c)
+	s.ReleaseContext(c)
+}
 
+// HandleRequest is the same as ServeHTTP, but uses Context
+// instead of http.ResponseWriter and http.Request.
+func (s *Service) HandleRequest(c *Context) (err error) {
 	if s.GetAction != nil {
 		c.Action = s.GetAction(c.req)
 	} else if c.Action = c.GetReqHeader("X-Action"); c.Action == "" {
@@ -191,12 +209,11 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		c.RequestID = c.GetReqHeader("X-Request-Id")
 	}
 
-	if err := s.handler(c); !c.res.Wrote {
-		c.Respond(nil, err)
+	if err = s.handler(c); !c.res.Wrote {
+		err = c.Respond(nil, err)
 	}
 
-	c.reset()
-	s.ctxpool.Put(c)
+	return
 }
 
 func (s *Service) handleRequest(c *Context) (err error) {
