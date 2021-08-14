@@ -14,7 +14,10 @@
 
 package httpsvc
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Predefine some errors.
 var (
@@ -62,7 +65,28 @@ func (e Error) Clone() Error {
 }
 
 // Error implements the interface error.
-func (e Error) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
+func (e Error) Error() string {
+	_len := len(e.Causes)
+	if _len == 0 {
+		if e.Component == "" {
+			return fmt.Sprintf("code=%s, msg=%s", e.Code, e.Message)
+		}
+		return fmt.Sprintf("component=%s, code=%s, msg=%s",
+			e.Component, e.Code, e.Message)
+	}
+
+	_causes := make([]string, _len)
+	for _len--; _len >= 0; _len-- {
+		_causes[_len] = e.Causes[_len].Error()
+	}
+	causes := strings.Join(_causes, " |> ")
+
+	if e.Component == "" {
+		return fmt.Sprintf("code=%s, msg=%s, causes=[%s]", e.Code, e.Message, causes)
+	}
+	return fmt.Sprintf("component=%s, code=%s, msg=%s, causes=[%s]",
+		e.Component, e.Code, e.Message, causes)
+}
 
 // WithCode clones itself and returns a new Error with the code.
 func (e Error) WithCode(code string) Error {
