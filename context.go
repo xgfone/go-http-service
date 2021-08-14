@@ -66,6 +66,9 @@ type Context struct {
 
 	// Data is used to store the context data during handling the request,
 	// and it is the responsibility of the user to manage its lifecycle.
+	//
+	// Notice: If implemented the interface { Reset() }, it will be called
+	// when ending to handle the request.
 	Data interface{}
 
 	// Binder is used by the method Bind to bind the request to data.
@@ -103,6 +106,10 @@ type Context struct {
 func NewContext() *Context { return &Context{res: newResponseWriter(nil)} }
 
 func (c *Context) reset() {
+	if reset, ok := c.Data.(interface{ Reset() }); ok {
+		reset.Reset()
+	}
+
 	c.req, c.query = nil, nil
 	c.res.Reset(nil)
 }
