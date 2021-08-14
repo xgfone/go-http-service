@@ -212,25 +212,31 @@ func (c *Context) JSON(data interface{}) (err error) {
 //
 // If Render isn't nil, use it to render the response. Or use c.JSON instead.
 func (c *Context) Respond(data interface{}, err error) error {
-	var _err Error
-	switch e := err.(type) {
+	var e Error
+	switch _err := err.(type) {
 	case nil:
 	case Error:
-		_err = Error{e.Code, e.Message}
+		e = _err
 	case interface{ CodeError() Error }:
-		_err = e.CodeError()
+		e = _err.CodeError()
 	default:
-		_err = ErrServerError.WithMessage(err.Error())
+		e = ErrServerError.WithCauses(err)
 	}
 
 	if c.Render != nil {
-		return c.Render(c, Response{RequestID: c.RequestID, Error: _err, Data: data})
+		return c.Render(c, Response{RequestID: c.RequestID, Error: e, Data: data})
 	}
 
-	if _err.Code == "" {
-		return c.JSON(Response{RequestID: c.RequestID, Data: data})
+	type Resp struct {
+		RequestID string      `json:"RequestId,omitempty"`
+		Error     error       `json:",omitempty"`
+		Data      interface{} `json:",omitempty"`
 	}
-	return c.JSON(Response{RequestID: c.RequestID, Error: _err, Data: data})
+
+	if e.Code == "" {
+		return c.JSON(Resp{RequestID: c.RequestID, Data: data})
+	}
+	return c.JSON(Resp{RequestID: c.RequestID, Error: e, Data: data})
 }
 
 // Success is equal to c.Respond("", data, nil).

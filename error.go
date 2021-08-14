@@ -43,20 +43,62 @@ var (
 
 // Error represents an error.
 type Error struct {
-	Code    string `json:",omitempty" xml:",omitempty"`
-	Message string `json:",omitempty" xml:",omitempty"`
+	Code      string  `json:",omitempty" xml:",omitempty"`
+	Message   string  `json:",omitempty" xml:",omitempty"`
+	Component string  `json:",omitempty" xml:",omitempty"`
+	Causes    []error `json:",omitempty" xml:",omitempty"`
 }
 
 // NewError returns a new Error.
 func NewError(code, msg string) Error { return Error{Code: code, Message: msg} }
 
+// Clone clones itself to a new one.
+func (e Error) Clone() Error {
+	ne := e
+	if len(e.Causes) == 0 {
+		ne.Causes = append([]error{}, e.Causes...)
+	}
+	return ne
+}
+
 // Error implements the interface error.
 func (e Error) Error() string { return fmt.Sprintf("%s: %s", e.Code, e.Message) }
 
-// WithMessage returns a new Error with the old Code and the new msg.
+// WithCode clones itself and returns a new Error with the code.
+func (e Error) WithCode(code string) Error {
+	ne := e.Clone()
+	ne.Code = code
+	return ne
+}
+
+// WithMessage clones itself and returns a new Error with the message.
 func (e Error) WithMessage(msgfmt string, msgargs ...interface{}) Error {
+	ne := e.Clone()
 	if len(msgargs) == 0 {
-		return Error{e.Code, msgfmt}
+		ne.Message = msgfmt
+	} else {
+		ne.Message = fmt.Sprintf(msgfmt, msgargs...)
 	}
-	return Error{e.Code, fmt.Sprintf(msgfmt, msgargs...)}
+	return ne
+}
+
+// WithComponent clones itself and returns a new Error with the component.
+func (e Error) WithComponent(component string) Error {
+	ne := e.Clone()
+	ne.Component = component
+	return ne
+}
+
+// WithCauses clones itself and returns a new Error appending the errors.
+func (e Error) WithCauses(errs ...error) Error {
+	ne := e.Clone()
+	ne.Causes = append(ne.Causes, errs...)
+	return ne
+}
+
+// AppendCauses appends the error causes into the original causes,
+// and returns itself.
+func (e Error) AppendCauses(errs ...error) Error {
+	e.Causes = append(e.Causes, errs...)
+	return e
 }
