@@ -40,5 +40,5 @@ vendor/
 debug
 debug_test
 
-# Mac
-.DS_Store
+# Unix hidden files
+.*

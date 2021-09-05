@@ -1,4 +1,4 @@
-# Go HTTP Service [![Build Status](https://api.travis-ci.com/xgfone/go-http-service.svg?branch=master)](https://travis-ci.com/github/xgfone/go-http-service) [![GoDoc](https://pkg.go.dev/badge/github.com/xgfone/go-http-service)](https://pkg.go.dev/github.com/xgfone/go-http-service) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://raw.githubusercontent.com/xgfone/go-http-service/master/LICENSE)
+# Go HTTP Service [![Build Status](https://github.com/xgfone/go-http-service/actions/workflows/go.yml/badge.svg)](https://github.com/xgfone/go-http-service/actions/workflows/go.yml) [![GoDoc](https://pkg.go.dev/badge/github.com/xgfone/go-http-service)](https://pkg.go.dev/github.com/xgfone/go-http-service) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://raw.githubusercontent.com/xgfone/go-http-service/master/LICENSE)
 
 Supply an action service framework based on http, supporting `Go1.5+`.
 
